@@ -12,6 +12,7 @@ int selectIdx = -1;
 int depth = 0;
 int wireMesh = 1;
 int boldMesh = 0;
+int drawShadow = 1;
 
 struct BezierCurve
 {
@@ -19,12 +20,6 @@ struct BezierCurve
     float uFrom;
     float uTo;
 };
-
-// TODO
-glm::vec2 Normal(glm::vec2 v)
-{
-    return glm::normalize(glm::vec2(-v.y, v.x));
-}
 
 static int SelectUserPts()
 {
@@ -90,6 +85,10 @@ static void KeyCallback(GLFWwindow* window, int key, int, int action, int)
     else if (key == GLFW_KEY_B && action == GLFW_PRESS)
     {
         boldMesh ^= 1;
+    }
+    else if (key == GLFW_KEY_S && action == GLFW_PRESS)
+    {
+        drawShadow ^= 1;
     }
     else if (key == GLFW_KEY_ESCAPE)
     {
@@ -192,8 +191,8 @@ void DrawRectangle(glm::ivec2 p1, glm::ivec2 p2, glm::vec3 color = white)
 
 void DrawLine(glm::vec2 start, glm::vec2 end, glm::vec3 color = white)
 {
-    const float rad = 1.0;
-    const float edge = 2.0;
+    const float rad = 0;
+    const float edge = 2;
 
     glm::ivec2 vmin = glm::floor(glm::min(start, end));
     glm::ivec2 vmax = glm::ceil(glm::max(start, end));
@@ -267,33 +266,62 @@ glm::vec2 BlossomBezier(const std::vector<glm::vec2>& pts,
     return BlossomBezier(pts, ts);
 }
 
-void DrawCurve(const std::vector<glm::vec2>& pts, glm::vec3 color = white)
+void DrawCurve(const std::vector<glm::vec2>& pts, glm::vec3 color = blue)
 {
-    float step = 0.02;
-    glm::vec2 pprev = pts[0];
-    for (float t = step; t < 1.0; t += step)
+    const float rad = 2.0;
+    const float edge = 4.0;
+
+    glm::vec2 vmin = glm::min(pts.front(), pts.back());
+    glm::vec2 vmax = glm::max(pts.front(), pts.back());
+    vmin = glm::floor(vmin - glm::vec2(edge));
+    vmax = glm::ceil(vmax + glm::vec2(edge));
+
+    glm::vec2 dir = pts.back() - pts.front();
+    float len = glm::length(dir);
+    glm::vec2 n = glm::vec2(-dir.y, dir.x) / len;
+    float c = -glm::dot(n, pts.front());
+
+    glm::vec2 derStart = pts[1] - pts[0];
+    glm::vec2 derEnd = pts[pts.size()-1] - pts[pts.size()-2];
+
+    for (int y = vmin.y; y <= vmax.y; ++y)
     {
-        glm::vec2 pcur = BlossomBezier(pts, t);
-        DrawLine(pprev, pcur, color);
-        pprev = pcur;
+        for (int x = vmin.x; x <= vmax.x; ++x)
+        {
+            glm::vec2 p(x, y);
+            if (glm::dot(p - pts.front(), derStart) < -1e-5) continue;
+            if (glm::dot(p - pts.back(), derEnd) > 1e-5) continue;
+
+            float signDst = glm::dot(n, p) + c;
+            glm::vec2 proj = p - signDst * n;
+            float u = glm::dot(proj - pts.front(), dir) / (len*len);
+            u = glm::clamp(0.f, 1.f, u);
+            glm::vec2 closest = BlossomBezier(pts, u);
+
+            float t = glm::smoothstep(rad, edge, glm::distance(closest, p));
+            int index = y*WIDTH + x;
+            buf[index] = glm::mix(color, buf[index], t);
+        }
     }
-    DrawLine(pprev, pts.back(), color);
 }
 
-#include <cstdio>
-void Subdivision(const std::vector<glm::vec2>& pts, int d = 0)
+void Subdivision(const std::vector<glm::vec2>& pts, int d, int maxd, glm::vec3 color)
 {
-    glm::vec2 pmin(INFINITY), pmax(-INFINITY);
-    for (const glm::vec2& p : pts)
+    if (d >= maxd)
     {
-        pmin = glm::min(pmin, p);
-        pmax = glm::max(pmax, p);
-    }
-
-    if (d >= depth)
-    {
-        if (wireMesh) DrawRectangle(pmin, pmax, gray);
-        DrawLine(pts.front(), pts.back(), blue);
+        if (wireMesh && d < MAX_DEPTH)
+        {
+            glm::vec2 pmin(INFINITY), pmax(-INFINITY);
+            for (const glm::vec2& p : pts)
+            {
+                pmin = glm::min(pmin, p);
+                pmax = glm::max(pmax, p);
+            }
+            DrawRectangle(pmin, pmax, gray);
+        }
+        
+        if (d == MAX_DEPTH) DrawCurve(pts, color);
+        else DrawLine(pts.front(), pts.back(), color);
         return;
     }
 
@@ -302,7 +330,7 @@ void Subdivision(const std::vector<glm::vec2>& pts, int d = 0)
     {
         subdiv.push_back(BlossomBezier(pts, 0.f, 0.5f, i));
     }
-    Subdivision(subdiv, d+1);
+    Subdivision(subdiv, d+1, maxd, color);
 
     subdiv.resize(0);
     for (int i = 0; i < (int)pts.size(); ++i)
@@ -310,7 +338,7 @@ void Subdivision(const std::vector<glm::vec2>& pts, int d = 0)
         subdiv.push_back(BlossomBezier(pts, 0.5f, 1.f, i));
     }
 
-    Subdivision(subdiv, d+1);
+    Subdivision(subdiv, d+1, maxd, color);
 }
 
 int main()
@@ -330,26 +358,25 @@ int main()
 
     InitRenderText();
 
-    userPts.emplace_back(100, 100);
-    userPts.emplace_back(200, 100);
-    userPts.emplace_back(100, 200);
-    userPts.emplace_back(200, 200);
-
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
 
         Clear();
-
-        DrawCurve(userPts, gray);
-        Subdivision(userPts);
-
-        for (int i = 0; i < (int)userPts.size(); ++i)
+        if (userPts.size() >= 2)
         {
-            DrawPoint(userPts[i]);
-            RenderText(buf, i, userPts[i]);
+            if (depth < MAX_DEPTH && drawShadow)
+                Subdivision(userPts, 0, MAX_DEPTH, gray);
+            Subdivision(userPts, 0, depth, blue);
         }
-
+        if (userPts.size() >= 1)
+        {
+            for (int i = 0; i < (int)userPts.size(); ++i)
+            {
+                DrawPoint(userPts[i]);
+                RenderText(buf, i, userPts[i]);
+            }
+        }
         SwapBuffers(window, buf);
     }
 

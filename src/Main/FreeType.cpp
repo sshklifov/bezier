@@ -22,7 +22,7 @@ void InitRenderText()
     }
 
     FT_Face face;
-    const char* font = "../fonts/Arimo-Regular.ttf";
+    const char* font = "fonts/Arimo-Regular.ttf";
     if (FT_New_Face(ft, font, 0, &face))
     {
         fprintf(stderr, "freetype failed to load %s\n", font);
@@ -35,7 +35,7 @@ void InitRenderText()
     {
         if (FT_Load_Char(face, c, FT_LOAD_RENDER))
         {
-            fprintf(stderr, "freetpye failed to load glyph\n");
+            fprintf(stderr, "freetype failed to load glyph\n");
             exit(1);
         }
         Character& ccur = chars[c-'0'];

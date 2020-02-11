@@ -1,6 +1,9 @@
-include Makefile.conf
+PREFIX ?= .
+include Config.mk
 
-objectFiles := $(shell find -regex '.*\.o')
+$(EXECUTABLE): $(wildcard $(LIBDIR)/*.o)
+	g++ $(CFLAGS) $(OPT) $^ $(LDLIBS) -o $@
 
-$(EXECUTABLE): $(objectFiles)
-	g++ $(CFLAGS) $(OPT) $(objectFiles) $(LDFLAGS) -o $@
+.PHONY: clean
+clean:
+	rm -f $(EXECUTABLE)

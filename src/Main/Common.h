@@ -8,11 +8,12 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_access.hpp>
+#include <glm/gtx/norm.hpp>
 
 const int WIDTH = 1280;
 const int HEIGHT = 720;
 const int MAX_POINTS = 9;
-const int MAX_DEPTH = 6;
+const int MAX_DEPTH = 7;
 const double PADDING = 20.0;
 
 const glm::vec3 black(0.157, 0.173, 0.204);

@@ -20,6 +20,12 @@ struct BezierCurve
     float uTo;
 };
 
+// TODO
+glm::vec2 Normal(glm::vec2 v)
+{
+    return glm::normalize(glm::vec2(-v.y, v.x));
+}
+
 static int SelectUserPts()
 {
     double xpos, ypos;
@@ -128,38 +134,44 @@ void DrawPoint(glm::vec2 p, glm::vec3 color = darkRed)
             float dst = hypot(xoff, yoff);
             float t = glm::smoothstep(rad, edge, dst);
             buf[index] = buf[index] * t + color * (1.f-t);
+            glm::mix(color, buf[index], t);
             index++;
         }
     }
 }
 
-void DrawHorzLine(glm::ivec2 p, int xto, int rad = 0, glm::vec3 color = white)
+void DrawHorzLine(glm::ivec2 p, int xto, const int rad = 0, glm::vec3 color = white)
 {
     if (p.x > xto) std::swap(p.x, xto);
 
-    assert(p.y >= rad && p.y < HEIGHT-rad);
-    for (int yoff = -rad; yoff <= rad; ++yoff)
+    const int edge = rad + 2;
+
+    for (int yoff = -edge+1; yoff < edge; ++yoff)
     {
+        float t = glm::smoothstep(rad, edge, glm::abs(yoff));
         int index = (p.y+yoff)*WIDTH + p.x;
         for (int x = p.x; x <= xto; ++x)
         {
-            buf[index] = color;
+            buf[index] = glm::mix(color, buf[index], t);
             ++index;
         }
     }
 }
 
-void DrawVertLine(glm::ivec2 p, int yto, int rad = 0, glm::vec3 color = white)
+void DrawVertLine(glm::ivec2 p, int yto, const int rad = 0, glm::vec3 color = white)
 {
     if (yto < p.y) std::swap(yto, p.y);
 
+    const int edge = rad + 2;
     assert(p.x >= rad && p.x < WIDTH-rad);
+
     for (int y = p.y; y <= yto; ++y)
     {
-        int index = y*WIDTH + (p.x-rad);
-        for (int xoff = -rad; xoff <= rad; ++xoff)
+        int index = y*WIDTH + (p.x-edge+1);
+        for (int xoff = -edge+1; xoff < edge; ++xoff)
         {
-            buf[index] = color;
+            float t = glm::smoothstep(rad, edge, glm::abs(xoff));
+            buf[index] = glm::mix(color, buf[index], t);
             ++index;
         }
     }
@@ -180,7 +192,7 @@ void DrawRectangle(glm::ivec2 p1, glm::ivec2 p2, glm::vec3 color = white)
 
 void DrawLine(glm::vec2 start, glm::vec2 end, glm::vec3 color = white)
 {
-    const float rad = 0.2;
+    const float rad = 1.0;
     const float edge = 2.0;
 
     glm::ivec2 vmin = glm::floor(glm::min(start, end));
@@ -188,22 +200,22 @@ void DrawLine(glm::vec2 start, glm::vec2 end, glm::vec3 color = white)
 
     glm::vec2 v = glm::normalize(end - start);
     glm::vec2 n(-v.y, v.x);
-    float C = -glm::dot(start, n);
+    float c = -glm::dot(start, n);
 
     if (glm::abs(n.x) < 1e-5)
-        return DrawHorzLine(start, end.x, (edge-1) / 2, color);
+        return DrawHorzLine(start, end.x, 0, color);
     float xrad = glm::abs(edge / n.x);
 
     for (int y = vmin.y; y <= vmax.y; ++y)
     {
-        float xmid = (-n.y*y-C) / n.x;
+        float xmid = (-n.y*y-c) / n.x;
         int xfrom = glm::clamp((int)glm::floor(xmid-xrad), vmin.x, vmax.x);
         int xto = glm::clamp((int)glm::ceil(xmid+xrad), vmin.x, vmax.x);
         int index = y*WIDTH + xfrom;
         for (int x = xfrom; x <= xto; ++x)
         {
             glm::vec2 p(x, y);
-            float dst = glm::abs(glm::dot(p, n) + C);
+            float dst = glm::abs(glm::dot(p, n) + c);
             float t = glm::smoothstep(rad, edge, dst);
             buf[index] = glm::mix(color, buf[index], t);
             index++;
@@ -213,11 +225,11 @@ void DrawLine(glm::vec2 start, glm::vec2 end, glm::vec3 color = white)
 
 glm::vec2 BlossomBezier(const std::vector<glm::vec2>& pts, const float* ts)
 {
-    glm::vec2 buf1[MAX_POINTS];
-    memcpy(buf1, pts.data(), pts.size() * sizeof(glm::vec2));
-    glm::vec2 buf2[MAX_POINTS];
+    glm::vec2 a[MAX_POINTS];
+    glm::vec2 b[MAX_POINTS];
+    memcpy(a, pts.data(), pts.size() * sizeof(glm::vec2));
 
-    glm::vec2 *cpy = buf1, *buf = buf2;
+    glm::vec2 *cpy = a, *buf = b;
     int nts = pts.size() - 1;
     for (int i = 0; i < nts; ++i)
     {
@@ -268,16 +280,18 @@ void DrawCurve(const std::vector<glm::vec2>& pts, glm::vec3 color = white)
     DrawLine(pprev, pts.back(), color);
 }
 
+#include <cstdio>
 void Subdivision(const std::vector<glm::vec2>& pts, int d = 0)
 {
+    glm::vec2 pmin(INFINITY), pmax(-INFINITY);
+    for (const glm::vec2& p : pts)
+    {
+        pmin = glm::min(pmin, p);
+        pmax = glm::max(pmax, p);
+    }
+
     if (d >= depth)
     {
-        glm::vec2 pmin(INFINITY), pmax(-INFINITY);
-        for (const glm::vec2& p : pts)
-        {
-            pmin = glm::min(pmin, p);
-            pmax = glm::max(pmax, p);
-        }
         if (wireMesh) DrawRectangle(pmin, pmax, gray);
         DrawLine(pts.front(), pts.back(), blue);
         return;
@@ -326,6 +340,7 @@ int main()
         glfwPollEvents();
 
         Clear();
+
         DrawCurve(userPts, gray);
         Subdivision(userPts);
 

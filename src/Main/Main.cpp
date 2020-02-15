@@ -8,11 +8,16 @@
 GLFWwindow* window;
 glm::vec3* buf;
 std::vector<glm::vec2> userPts;
-int selectIdx = -1;
+glm::vec2* selectPtr = NULL;
 int depth = 0;
 int wireMesh = 1;
 int boldMesh = 0;
 int drawShadow = 1;
+
+glm::vec2 a(640, 340);
+glm::vec2 b(640, 680);
+int intersectMode = 0;
+int maxSteps = 1;
 
 struct BezierCurve
 {
@@ -21,7 +26,7 @@ struct BezierCurve
     float uTo;
 };
 
-static int SelectUserPts()
+static glm::vec2* SelectPoints()
 {
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
@@ -32,32 +37,40 @@ static int SelectUserPts()
     {
         if (glm::distance(userPts[i], cursor) < threshold)
         {
-            return i;
+            return userPts.data() + i;
         }
     }
-    return -1;
+    if (intersectMode)
+    {
+        if (glm::distance(a, cursor) < threshold)
+            return &a;
+        if (glm::distance(b, cursor) < threshold)
+            return &b;
+    }
+
+    return NULL;
 }
 
 static void MouseButtonCallback(GLFWwindow*, int button, int action, int)
 {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
     {
-        selectIdx = SelectUserPts();
+        selectPtr = SelectPoints();
     }
     else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
     {
-        selectIdx = -1;
+        selectPtr = NULL;
     }
 }
 
 static void CursorPosCallback(GLFWwindow*, double xpos, double ypos)
 {
-    if (selectIdx >= 0)
+    if (selectPtr)
     {
         xpos = glm::clamp(xpos, PADDING, WIDTH-PADDING);
         ypos = glm::clamp(ypos, PADDING, HEIGHT-PADDING);
         glm::vec2 cursor(xpos, HEIGHT-ypos);
-        userPts[selectIdx] = cursor;
+        *selectPtr = cursor;
     }
 }
 
@@ -75,8 +88,13 @@ static void KeyCallback(GLFWwindow* window, int key, int, int action, int)
     }
     else if (key == GLFW_KEY_D && action == GLFW_PRESS)
     {
-        int idx = SelectUserPts();
-        if (idx >= 0) userPts.erase(userPts.begin() + idx);
+        glm::vec2* p = SelectPoints();
+        glm::vec2* v = userPts.data();
+        if (p >= v && p < v+userPts.size())
+        {
+            int offset = p - v;
+            userPts.erase(userPts.begin() + offset);
+        }
     }
     else if (key == GLFW_KEY_W && action == GLFW_PRESS)
     {
@@ -90,6 +108,24 @@ static void KeyCallback(GLFWwindow* window, int key, int, int action, int)
     {
         drawShadow ^= 1;
     }
+    else if (key == GLFW_KEY_I && action == GLFW_PRESS)
+    {
+        if (!intersectMode)
+        {
+            intersectMode = true;
+            a = glm::vec2(640, 340);
+            b = glm::vec2(640, 680);
+            maxSteps = 1;
+        }
+        else
+        {
+            intersectMode = false;
+            depth = 0;
+            wireMesh = 1;
+            boldMesh = 0;
+            drawShadow = 1;
+        }
+    }
     else if (key == GLFW_KEY_ESCAPE)
     {
         glfwSetWindowShouldClose(window, 1);
@@ -98,15 +134,30 @@ static void KeyCallback(GLFWwindow* window, int key, int, int action, int)
 
 static void ScrollCallback(GLFWwindow*, double, double yoff)
 {
-    if (yoff > 0)
+    if (intersectMode)
     {
-        ++depth;
+        if (yoff > 0)
+        {
+            ++maxSteps;
+        }
+        else
+        {
+            --maxSteps;
+        }
+        maxSteps = glm::clamp(maxSteps, 1, 100);
     }
     else
     {
-        --depth;
+        if (yoff > 0)
+        {
+            ++depth;
+        }
+        else
+        {
+            --depth;
+        }
+        depth = glm::clamp(depth, 0, MAX_DEPTH);
     }
-    depth = glm::clamp(depth, 0, MAX_DEPTH);
 }
 
 void Clear(glm::vec3 color = black)
@@ -118,7 +169,7 @@ void Clear(glm::vec3 color = black)
     }
 }
 
-void DrawPoint(glm::vec2 p, glm::vec3 color = darkRed)
+void DrawPoint(glm::ivec2 p, glm::vec3 color = darkRed)
 {
     const float rad = 8;
     const float edge = 10;
@@ -151,7 +202,9 @@ void DrawHorzLine(glm::ivec2 p, int xto, const int rad = 0, glm::vec3 color = wh
         int index = (p.y+yoff)*WIDTH + p.x;
         for (int x = p.x; x <= xto; ++x)
         {
-            buf[index] = glm::mix(color, buf[index], t);
+            if (glm::length(buf[index] - darkYellow) > 0.05f)
+                buf[index] = glm::mix(color, buf[index], t);
+            // TODO
             ++index;
         }
     }
@@ -170,7 +223,9 @@ void DrawVertLine(glm::ivec2 p, int yto, const int rad = 0, glm::vec3 color = wh
         for (int xoff = -edge+1; xoff < edge; ++xoff)
         {
             float t = glm::smoothstep(rad, edge, glm::abs(xoff));
-            buf[index] = glm::mix(color, buf[index], t);
+            if (glm::length(buf[index] - darkYellow) > 0.05f)
+                buf[index] = glm::mix(color, buf[index], t);
+            // TODO
             ++index;
         }
     }
@@ -341,6 +396,120 @@ void Subdivision(const std::vector<glm::vec2>& pts, int d, int maxd, glm::vec3 c
     Subdivision(subdiv, d+1, maxd, color);
 }
 
+bool SegmentBoxIntersection(glm::vec2 vmin, glm::vec2 vmax)
+{
+    glm::vec2 v = glm::normalize(b - a);
+    glm::vec2 n(-v.y, v.x);
+    float c = -glm::dot(n, a);
+
+    if (glm::abs(n.y) < 1e-5)
+    {
+        float x = -c/n.x;
+        return vmin.x < x && x < vmax.x &&
+            !(vmin.y > glm::max(a.y, b.y) || vmax.y < glm::min(a.y, b.y));
+    }
+
+    float y0 = -(c + n.x*vmin.x) / n.y;
+    float y1 = -(c + n.x*vmax.x) / n.y;
+    if (y0 > y1) std::swap(y0, y1);
+
+    float lsect0 = glm::max(vmin.y, y0);
+    float lsect1 = glm::min(vmax.y, y1);
+    return lsect0<lsect1 &&
+        !(lsect0 > glm::max(a.y, b.y) || lsect1 < glm::min(a.y, b.y));
+}
+
+void Intersect(const std::vector<glm::vec2>& pts, int& steps,
+    int d, glm::vec3 color)
+{
+    glm::vec2 pmin(INFINITY), pmax(-INFINITY);
+    for (const glm::vec2& p : pts)
+    {
+        pmin = glm::min(pmin, p);
+        pmax = glm::max(pmax, p);
+    }
+
+    if (!SegmentBoxIntersection(pmin, pmax))
+    {
+        DrawRectangle(pmin, pmax, darkRed);
+        return;
+    }
+    if (d >= MAX_DEPTH)
+    {
+        glm::vec2 mid = (pts.front() + pts.back()) / 2.f;
+        DrawPoint(mid, darkYellow);
+        return;
+    }
+    if (steps <= 0)
+    {
+        DrawRectangle(pmin, pmax, green);
+        return;
+    }
+    --steps;
+
+    std::vector<glm::vec2> subdiv;
+    for (int i = 0; i < (int)pts.size(); ++i)
+    {
+        subdiv.push_back(BlossomBezier(pts, 0.f, 0.5f, i));
+    }
+    Intersect(subdiv, steps, d+1, color);
+
+    subdiv.resize(0);
+    for (int i = 0; i < (int)pts.size(); ++i)
+    {
+        subdiv.push_back(BlossomBezier(pts, 0.5f, 1.f, i));
+    }
+    Intersect(subdiv, steps, d+1, color);
+}
+
+void IntersectMode()
+{
+    Clear();
+    if (userPts.size() >= 2)
+    {
+        Subdivision(userPts, 0, MAX_DEPTH, gray);
+    }
+    if (userPts.size() >= 2)
+    {
+        int steps = maxSteps-1;
+        Intersect(userPts, steps, 0, cyan);
+        if (steps > 0) maxSteps -= steps;
+    }
+    DrawLine(a, b, darkYellow);
+    DrawPoint(a, darkYellow);
+    DrawPoint(b, darkYellow);
+    if (userPts.size() >= 1)
+    {
+        for (int i = 0; i < (int)userPts.size(); ++i)
+        {
+            DrawPoint(userPts[i]);
+            RenderText(buf, i, userPts[i]);
+        }
+    }
+
+    SwapBuffers(window, buf);
+}
+
+void DrawMode()
+{
+    Clear();
+    if (userPts.size() >= 2)
+    {
+        if (depth < MAX_DEPTH && drawShadow)
+            Subdivision(userPts, 0, MAX_DEPTH, gray);
+        Subdivision(userPts, 0, depth, blue);
+    }
+    if (userPts.size() >= 1)
+    {
+        for (int i = 0; i < (int)userPts.size(); ++i)
+        {
+            DrawPoint(userPts[i]);
+            RenderText(buf, i, userPts[i]);
+        }
+    }
+    SwapBuffers(window, buf);
+}
+
 int main()
 {
     window = CreateRenderer(WIDTH, HEIGHT);
@@ -362,22 +531,8 @@ int main()
     {
         glfwPollEvents();
 
-        Clear();
-        if (userPts.size() >= 2)
-        {
-            if (depth < MAX_DEPTH && drawShadow)
-                Subdivision(userPts, 0, MAX_DEPTH, gray);
-            Subdivision(userPts, 0, depth, blue);
-        }
-        if (userPts.size() >= 1)
-        {
-            for (int i = 0; i < (int)userPts.size(); ++i)
-            {
-                DrawPoint(userPts[i]);
-                RenderText(buf, i, userPts[i]);
-            }
-        }
-        SwapBuffers(window, buf);
+        if (intersectMode) IntersectMode();
+        else DrawMode();
     }
 
     free(buf);

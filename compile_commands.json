@@ -1,0 +1,90 @@
+[
+    {
+        "arguments": [
+            "g++",
+            "-c",
+            "-I../../src",
+            "-I/usr/include/freetype2",
+            "-I/usr/include/libpng16",
+            "-I/usr/include/harfbuzz",
+            "-I/usr/include/glib-2.0",
+            "-I/usr/lib/glib-2.0/include",
+            "-DNDEBIG",
+            "-O2",
+            "-ffast-math",
+            "-Wall",
+            "-Wextra",
+            "-o",
+            "../../lib/glad.o",
+            "glad.cpp"
+        ],
+        "directory": "/home/stef/Downloads/bezier/src/Renderer",
+        "file": "glad.cpp"
+    },
+    {
+        "arguments": [
+            "g++",
+            "-c",
+            "-I../../src",
+            "-I/usr/include/freetype2",
+            "-I/usr/include/libpng16",
+            "-I/usr/include/harfbuzz",
+            "-I/usr/include/glib-2.0",
+            "-I/usr/lib/glib-2.0/include",
+            "-DNDEBIG",
+            "-O2",
+            "-ffast-math",
+            "-Wall",
+            "-Wextra",
+            "-o",
+            "../../lib/FreeType.o",
+            "FreeType.cpp"
+        ],
+        "directory": "/home/stef/Downloads/bezier/src/Main",
+        "file": "FreeType.cpp"
+    },
+    {
+        "arguments": [
+            "g++",
+            "-c",
+            "-I../../src",
+            "-I/usr/include/freetype2",
+            "-I/usr/include/libpng16",
+            "-I/usr/include/harfbuzz",
+            "-I/usr/include/glib-2.0",
+            "-I/usr/lib/glib-2.0/include",
+            "-DNDEBIG",
+            "-O2",
+            "-ffast-math",
+            "-Wall",
+            "-Wextra",
+            "-o",
+            "../../lib/Renderer.o",
+            "Renderer.cpp"
+        ],
+        "directory": "/home/stef/Downloads/bezier/src/Renderer",
+        "file": "Renderer.cpp"
+    },
+    {
+        "arguments": [
+            "g++",
+            "-c",
+            "-I../../src",
+            "-I/usr/include/freetype2",
+            "-I/usr/include/libpng16",
+            "-I/usr/include/harfbuzz",
+            "-I/usr/include/glib-2.0",
+            "-I/usr/lib/glib-2.0/include",
+            "-DNDEBIG",
+            "-O2",
+            "-ffast-math",
+            "-Wall",
+            "-Wextra",
+            "-o",
+            "../../lib/Main.o",
+            "Main.cpp"
+        ],
+        "directory": "/home/stef/Downloads/bezier/src/Main",
+        "file": "Main.cpp"
+    }
+]

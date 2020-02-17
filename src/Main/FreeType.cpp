@@ -38,16 +38,16 @@ void InitRenderText()
             fprintf(stderr, "freetype failed to load glyph\n");
             exit(1);
         }
-        Character& ccur = chars[c-'0'];
+        Character& ccur = chars[c - '0'];
         ccur.width = face->glyph->bitmap.width;
         ccur.height = face->glyph->bitmap.rows;
         ccur.buffer.resize(ccur.width * ccur.height);
         for (int row = 0; row < ccur.height; ++row)
         {
-            memcpy(
-                ccur.buffer.data() + ccur.width*row,
-                face->glyph->bitmap.buffer + ccur.width*(ccur.height-1-row),
-                ccur.width);
+            memcpy(ccur.buffer.data() + ccur.width * row,
+                   face->glyph->bitmap.buffer +
+                       ccur.width * (ccur.height - 1 - row),
+                   ccur.width);
         }
     }
 
@@ -60,8 +60,8 @@ void RenderText(glm::vec3* buf, int idx, glm::ivec2 pos)
     const glm::vec3 color = black;
     const Character& dig = chars.at(idx);
 
-    int startx = pos.x - dig.width/2;
-    int starty = pos.y - dig.height/2;
+    int startx = pos.x - dig.width / 2;
+    int starty = pos.y - dig.height / 2;
     int bmapIdx = 0;
     for (int yoff = 0; yoff < dig.height; ++yoff)
     {

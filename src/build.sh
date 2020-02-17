@@ -20,6 +20,7 @@ if [ "$1" = "c" ]; then
     exit
 fi
 
+mkdir -p ../lib
 for dir in $SUBDIRS; do
     cd $dir
     make depend && make

@@ -22,8 +22,7 @@ glm::vec2 b(600, 500);
 int intersectMode = 0;
 int maxSteps = 1;
 
-struct BezierCurve
-{
+struct BezierCurve {
     std::vector<glm::vec2> pts;
     float uFrom;
     float uTo;
@@ -36,13 +35,11 @@ static glm::vec2* SelectPoints()
     glm::vec2 cursor(xpos, HEIGHT - ypos);
 
     const int threshold = 20.f;
-    for (int i = 0; i < (int)userPts.size(); ++i)
-    {
+    for (int i = 0; i < (int)userPts.size(); ++i) {
         if (glm::distance(userPts[i], cursor) < threshold)
             return userPts.data() + i;
     }
-    if (intersectMode)
-    {
+    if (intersectMode) {
         if (glm::distance(a, cursor) < threshold)
             return &a;
         if (glm::distance(b, cursor) < threshold)
@@ -54,20 +51,17 @@ static glm::vec2* SelectPoints()
 
 static void MouseButtonCallback(GLFWwindow*, int button, int action, int)
 {
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
-    {
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
         selectPtr = SelectPoints();
     }
-    else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
-    {
+    else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
         selectPtr = NULL;
     }
 }
 
 static void CursorPosCallback(GLFWwindow*, double xpos, double ypos)
 {
-    if (selectPtr)
-    {
+    if (selectPtr) {
         xpos = glm::clamp(xpos, PADDING, WIDTH - PADDING);
         ypos = glm::clamp(ypos, PADDING, HEIGHT - PADDING);
         glm::vec2 cursor(xpos, HEIGHT - ypos);
@@ -78,8 +72,7 @@ static void CursorPosCallback(GLFWwindow*, double xpos, double ypos)
 static void KeyCallback(GLFWwindow* window, int key, int, int action, int)
 {
     if (key == GLFW_KEY_A && action == GLFW_PRESS &&
-        userPts.size() < MAX_POINTS)
-    {
+        userPts.size() < MAX_POINTS) {
         double xpos, ypos;
         glfwGetCursorPos(window, &xpos, &ypos);
         xpos = glm::clamp(xpos, PADDING, WIDTH - PADDING);
@@ -87,49 +80,39 @@ static void KeyCallback(GLFWwindow* window, int key, int, int action, int)
 
         userPts.push_back(glm::vec2(xpos, HEIGHT - ypos));
     }
-    else if (key == GLFW_KEY_D && action == GLFW_PRESS)
-    {
+    else if (key == GLFW_KEY_D && action == GLFW_PRESS) {
         glm::vec2* p = SelectPoints();
         glm::vec2* v = userPts.data();
-        if (p >= v && p < v + userPts.size())
-        {
+        if (p >= v && p < v + userPts.size()) {
             int offset = p - v;
             userPts.erase(userPts.begin() + offset);
         }
     }
-    else if (key == GLFW_KEY_W && action == GLFW_PRESS)
-    {
-        if (wireMesh)
-        {
+    else if (key == GLFW_KEY_W && action == GLFW_PRESS) {
+        if (wireMesh) {
             wireMesh = false;
             maxSteps = 1000;
         }
-        else
-        {
+        else {
             wireMesh = true;
             maxSteps = 1;
         }
     }
-    else if (key == GLFW_KEY_B && action == GLFW_PRESS)
-    {
+    else if (key == GLFW_KEY_B && action == GLFW_PRESS) {
         boldMesh ^= 1;
     }
-    else if (key == GLFW_KEY_S && action == GLFW_PRESS)
-    {
+    else if (key == GLFW_KEY_S && action == GLFW_PRESS) {
         drawShadow ^= 1;
     }
-    else if (key == GLFW_KEY_I && action == GLFW_PRESS)
-    {
-        if (!intersectMode)
-        {
+    else if (key == GLFW_KEY_I && action == GLFW_PRESS) {
+        if (!intersectMode) {
             intersectMode = true;
             a = glm::vec2(640, 340);
             b = glm::vec2(640, 680);
             maxSteps = 1;
             wireMesh = true;
         }
-        else
-        {
+        else {
             intersectMode = false;
             depth = 0;
             wireMesh = 1;
@@ -137,34 +120,27 @@ static void KeyCallback(GLFWwindow* window, int key, int, int action, int)
             drawShadow = 1;
         }
     }
-    else if (key == GLFW_KEY_ESCAPE)
-    {
+    else if (key == GLFW_KEY_ESCAPE) {
         glfwSetWindowShouldClose(window, 1);
     }
 }
 
 static void ScrollCallback(GLFWwindow*, double, double yoff)
 {
-    if (intersectMode)
-    {
-        if (yoff > 0)
-        {
+    if (intersectMode) {
+        if (yoff > 0) {
             ++maxSteps;
         }
-        else
-        {
+        else {
             --maxSteps;
         }
         maxSteps = glm::clamp(maxSteps, 1, 1000);
     }
-    else
-    {
-        if (yoff > 0)
-        {
+    else {
+        if (yoff > 0) {
             ++depth;
         }
-        else
-        {
+        else {
             --depth;
         }
         depth = glm::clamp(depth, 0, MAX_DEPTH);
@@ -174,8 +150,7 @@ static void ScrollCallback(GLFWwindow*, double, double yoff)
 void Clear(glm::vec3 color = black)
 {
     int bufsiz = WIDTH * HEIGHT;
-    for (int i = 0; i < bufsiz; ++i)
-    {
+    for (int i = 0; i < bufsiz; ++i) {
         buf[i] = color;
     }
 }
@@ -187,11 +162,9 @@ void DrawPoint(glm::ivec2 p, glm::vec3 color = darkRed)
     assert(p.x >= edge && p.x < WIDTH - edge);
     assert(p.y >= edge && p.y < HEIGHT - edge);
 
-    for (int yoff = -edge; yoff <= edge; ++yoff)
-    {
+    for (int yoff = -edge; yoff <= edge; ++yoff) {
         int index = (p.y + yoff) * WIDTH + (p.x - edge);
-        for (int xoff = -edge; xoff <= edge; ++xoff)
-        {
+        for (int xoff = -edge; xoff <= edge; ++xoff) {
             float dst = hypot(xoff, yoff);
             float t = glm::smoothstep(rad, edge, dst);
             buf[index] = buf[index] * t + color * (1.f - t);
@@ -209,12 +182,10 @@ void DrawHorzLine(glm::ivec2 p, int xto, const int rad = 0,
 
     const int edge = rad + 2;
 
-    for (int yoff = -edge + 1; yoff < edge; ++yoff)
-    {
+    for (int yoff = -edge + 1; yoff < edge; ++yoff) {
         float t = glm::smoothstep(rad, edge, glm::abs(yoff));
         int index = (p.y + yoff) * WIDTH + p.x;
-        for (int x = p.x; x <= xto; ++x)
-        {
+        for (int x = p.x; x <= xto; ++x) {
             if (glm::length(buf[index] - darkYellow) > 0.08f)
                 buf[index] = glm::mix(color, buf[index], t);
             // TODO
@@ -232,11 +203,9 @@ void DrawVertLine(glm::ivec2 p, int yto, const int rad = 0,
     const int edge = rad + 2;
     assert(p.x >= rad && p.x < WIDTH - rad);
 
-    for (int y = p.y; y <= yto; ++y)
-    {
+    for (int y = p.y; y <= yto; ++y) {
         int index = y * WIDTH + (p.x - edge + 1);
-        for (int xoff = -edge + 1; xoff < edge; ++xoff)
-        {
+        for (int xoff = -edge + 1; xoff < edge; ++xoff) {
             float t = glm::smoothstep(rad, edge, glm::abs(xoff));
             if (glm::length(buf[index] - darkYellow) > 0.08f)
                 buf[index] = glm::mix(color, buf[index], t);
@@ -276,14 +245,12 @@ void DrawLine(glm::vec2 start, glm::vec2 end, glm::vec3 color = white)
         return DrawHorzLine(start, end.x, 0, color);
     float xrad = glm::abs(edge / n.x);
 
-    for (int y = vmin.y; y <= vmax.y; ++y)
-    {
+    for (int y = vmin.y; y <= vmax.y; ++y) {
         float xmid = (-n.y * y - c) / n.x;
         int xfrom = glm::clamp((int)glm::floor(xmid - xrad), vmin.x, vmax.x);
         int xto = glm::clamp((int)glm::ceil(xmid + xrad), vmin.x, vmax.x);
         int index = y * WIDTH + xfrom;
-        for (int x = xfrom; x <= xto; ++x)
-        {
+        for (int x = xfrom; x <= xto; ++x) {
             glm::vec2 p(x, y);
             float dst = glm::abs(glm::dot(p, n) + c);
             float t = glm::smoothstep(rad, edge, dst);
@@ -301,11 +268,9 @@ glm::vec2 BlossomBezier(const std::vector<glm::vec2>& pts, const float* ts)
 
     glm::vec2 *cpy = a, *buf = b;
     int nts = pts.size() - 1;
-    for (int i = 0; i < nts; ++i)
-    {
+    for (int i = 0; i < nts; ++i) {
         float t = ts[i];
-        for (int j = 0; j < nts - i; ++j)
-        {
+        for (int j = 0; j < nts - i; ++j) {
             buf[j] = glm::mix(cpy[j], cpy[j + 1], t);
         }
         std::swap(cpy, buf);
@@ -317,8 +282,7 @@ glm::vec2 BlossomBezier(const std::vector<glm::vec2>& pts, float t)
 {
     float ts[MAX_POINTS];
     int nts = pts.size() - 1;
-    for (int i = 0; i < nts; ++i)
-    {
+    for (int i = 0; i < nts; ++i) {
         ts[i] = t;
     }
     return BlossomBezier(pts, ts);
@@ -329,8 +293,7 @@ glm::vec2 BlossomBezier(const std::vector<glm::vec2>& pts, float uFrom,
 {
     float ts[MAX_POINTS];
     int nts = pts.size() - 1;
-    for (int i = 0; i < nts; ++i)
-    {
+    for (int i = 0; i < nts; ++i) {
         if (i < n)
             ts[i] = uTo;
         else
@@ -357,10 +320,8 @@ void DrawCurveBase(const std::vector<glm::vec2>& pts, const float rad,
     glm::vec2 derStart = pts[1] - pts[0];
     glm::vec2 derEnd = pts[pts.size() - 1] - pts[pts.size() - 2];
 
-    for (int y = vmin.y; y <= vmax.y; ++y)
-    {
-        for (int x = vmin.x; x <= vmax.x; ++x)
-        {
+    for (int y = vmin.y; y <= vmax.y; ++y) {
+        for (int x = vmin.x; x <= vmax.x; ++x) {
             glm::vec2 p(x, y);
             if (glm::dot(p - pts.front(), derStart) < -1e-5)
                 continue;
@@ -383,13 +344,10 @@ void DrawCurveBase(const std::vector<glm::vec2>& pts, const float rad,
 void DrawCurve(const std::vector<glm::vec2>& pts, int d, int maxd,
                glm::vec3 color)
 {
-    if (d >= maxd)
-    {
-        if (wireMesh && d < MAX_DEPTH)
-        {
+    if (d >= maxd) {
+        if (wireMesh && d < MAX_DEPTH) {
             glm::vec2 pmin(INFINITY), pmax(-INFINITY);
-            for (const glm::vec2& p : pts)
-            {
+            for (const glm::vec2& p : pts) {
                 pmin = glm::min(pmin, p);
                 pmax = glm::max(pmax, p);
             }
@@ -404,15 +362,13 @@ void DrawCurve(const std::vector<glm::vec2>& pts, int d, int maxd,
     }
 
     std::vector<glm::vec2> subdiv;
-    for (int i = 0; i < (int)pts.size(); ++i)
-    {
+    for (int i = 0; i < (int)pts.size(); ++i) {
         subdiv.push_back(BlossomBezier(pts, 0.f, 0.5f, i));
     }
     DrawCurve(subdiv, d + 1, maxd, color);
 
     subdiv.resize(0);
-    for (int i = 0; i < (int)pts.size(); ++i)
-    {
+    for (int i = 0; i < (int)pts.size(); ++i) {
         subdiv.push_back(BlossomBezier(pts, 0.5f, 1.f, i));
     }
 
@@ -425,15 +381,13 @@ bool SegmentBoxIntersection(glm::vec2 vmin, glm::vec2 vmax)
     glm::vec2 n(-v.y, v.x);
     float c = -glm::dot(n, a);
 
-    if (glm::abs(n.y) < 1e-5)
-    {
+    if (glm::abs(n.y) < 1e-5) {
         assert(glm::abs(n.x) > 1e-5);
         float x = -c / n.x;
         return vmin.x < x && x < vmax.x &&
                !(vmin.y > glm::max(a.y, b.y) || vmax.y < glm::min(a.y, b.y));
     }
-    if (glm::abs(n.x) < 1e-5)
-    {
+    if (glm::abs(n.x) < 1e-5) {
         assert(glm::abs(n.y) > 1e-5);
         float y = -c / n.y;
         return vmin.y < y && y < vmax.y &&
@@ -454,26 +408,22 @@ bool SegmentBoxIntersection(glm::vec2 vmin, glm::vec2 vmax)
 void Intersect(const std::vector<glm::vec2>& pts, int& steps)
 {
     glm::vec2 pmin(INFINITY), pmax(-INFINITY);
-    for (const glm::vec2& p : pts)
-    {
+    for (const glm::vec2& p : pts) {
         pmin = glm::min(pmin, p);
         pmax = glm::max(pmax, p);
     }
 
-    if (!SegmentBoxIntersection(pmin, pmax))
-    {
+    if (!SegmentBoxIntersection(pmin, pmax)) {
         if (wireMesh)
             DrawRectangle(pmin, pmax, darkRed);
         return;
     }
-    if (glm::distance2(pmin, pmax) < 1.f)
-    {
+    if (glm::distance2(pmin, pmax) < 1.f) {
         glm::vec2 mid = (pts.front() + pts.back()) / 2.f;
         DrawPoint(mid, darkYellow);
         return;
     }
-    if (steps <= 0)
-    {
+    if (steps <= 0) {
         if (wireMesh)
             DrawRectangle(pmin, pmax, green);
         return;
@@ -481,15 +431,13 @@ void Intersect(const std::vector<glm::vec2>& pts, int& steps)
     --steps;
 
     std::vector<glm::vec2> subdiv;
-    for (int i = 0; i < (int)pts.size(); ++i)
-    {
+    for (int i = 0; i < (int)pts.size(); ++i) {
         subdiv.push_back(BlossomBezier(pts, 0.f, 0.5f, i));
     }
     Intersect(subdiv, steps);
 
     subdiv.resize(0);
-    for (int i = 0; i < (int)pts.size(); ++i)
-    {
+    for (int i = 0; i < (int)pts.size(); ++i) {
         subdiv.push_back(BlossomBezier(pts, 0.5f, 1.f, i));
     }
     Intersect(subdiv, steps);
@@ -498,12 +446,10 @@ void Intersect(const std::vector<glm::vec2>& pts, int& steps)
 void IntersectMode()
 {
     Clear();
-    if (userPts.size() >= 2)
-    {
+    if (userPts.size() >= 2) {
         DrawCurve(userPts, 0, MAX_DEPTH, gray);
     }
-    if (userPts.size() >= 2)
-    {
+    if (userPts.size() >= 2) {
         int steps = maxSteps - 1;
         Intersect(userPts, steps);
         assert(steps >= 0);
@@ -513,10 +459,8 @@ void IntersectMode()
     DrawLine(a, b, darkYellow);
     DrawPoint(a, darkYellow);
     DrawPoint(b, darkYellow);
-    if (userPts.size() >= 1)
-    {
-        for (int i = 0; i < (int)userPts.size(); ++i)
-        {
+    if (userPts.size() >= 1) {
+        for (int i = 0; i < (int)userPts.size(); ++i) {
             DrawPoint(userPts[i]);
             RenderText(buf, i, userPts[i]);
         }
@@ -528,16 +472,13 @@ void IntersectMode()
 void DrawMode()
 {
     Clear();
-    if (userPts.size() >= 2)
-    {
+    if (userPts.size() >= 2) {
         if (depth < MAX_DEPTH && drawShadow)
             DrawCurve(userPts, 0, MAX_DEPTH, gray);
         DrawCurve(userPts, 0, depth, blue);
     }
-    if (userPts.size() >= 1)
-    {
-        for (int i = 0; i < (int)userPts.size(); ++i)
-        {
+    if (userPts.size() >= 1) {
+        for (int i = 0; i < (int)userPts.size(); ++i) {
             DrawPoint(userPts[i]);
             RenderText(buf, i, userPts[i]);
         }
@@ -548,8 +489,7 @@ void DrawMode()
 int main()
 {
     window = CreateRenderer(WIDTH, HEIGHT);
-    if (window == NULL)
-    {
+    if (window == NULL) {
         exit(EXIT_FAILURE);
     }
     glfwSetMouseButtonCallback(window, MouseButtonCallback);
@@ -562,8 +502,7 @@ int main()
 
     InitRenderText();
 
-    while (!glfwWindowShouldClose(window))
-    {
+    while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         if (intersectMode)
             IntersectMode();

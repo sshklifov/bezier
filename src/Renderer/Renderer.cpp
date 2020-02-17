@@ -1,9 +1,9 @@
 #include "Renderer.h"
 
+#include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <memory>
-#include <cassert>
 
 static GLuint program;
 static GLuint vao;
@@ -25,8 +25,7 @@ static GLuint CompileShader(GLenum type, const char* src)
 #ifndef NDEBUG
     int s;
     glGetShaderiv(id, GL_COMPILE_STATUS, &s);
-    if (!s)
-    {
+    if (!s) {
         char buf[512];
         glGetShaderInfoLog(id, 512, NULL, buf);
         fprintf(stderr, "failed to compile shader (type=%d):\n%s\n", type, buf);
@@ -72,8 +71,7 @@ static void InitializeGL()
 #ifndef NDEBUG
     int s;
     glGetProgramiv(program, GL_LINK_STATUS, &s);
-    if (!s)
-    {
+    if (!s) {
         char buf[512];
         glGetProgramInfoLog(program, 512, NULL, buf);
         fprintf(stderr, "failed to link program:\n%s\n", buf);
@@ -120,8 +118,7 @@ static void InitializeGL()
 
 GLFWwindow* CreateRenderer(int width, int height)
 {
-    if (!glfwInit())
-    {
+    if (!glfwInit()) {
         fprintf(stderr, "failed to init GLFW\n");
         return NULL;
     }
@@ -136,16 +133,14 @@ GLFWwindow* CreateRenderer(int width, int height)
         nullptr, glfwDestroyWindow);
     window.reset(
         glfwCreateWindow(width, height, "OpenGL Application", NULL, NULL));
-    if (!window)
-    {
+    if (!window) {
         fprintf(stderr, "cannot create window with w=%d h=%d\n", width, height);
         return NULL;
     }
 
     glfwMakeContextCurrent(window.get());
     glfwSwapInterval(1);
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         fprintf(stderr, "could not load opengl library\n");
         return NULL;
     }
